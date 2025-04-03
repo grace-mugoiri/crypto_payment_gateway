@@ -1,16 +1,23 @@
+import bcrypt
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from datetime import timedelta
-from models import User, db  # Assuming SQLAlchemy is used
+from models import User, db
 
 auth_bp = Blueprint('auth', __name__)
+
+def hash_password(password):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def check_password(hashed_password, password):
+    return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 # Register User
 @auth_bp.route('/auth/register', methods=['POST'])
 def register():
     data = request.get_json()
-    hashed_password = generate_password_hash(data['password'])
+    hashed_password = hash_password(data['password'])
     user = User(username=data['username'], password=hashed_password)
     db.session.add(user)
     db.session.commit()
