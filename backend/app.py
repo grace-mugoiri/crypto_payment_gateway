@@ -1,38 +1,27 @@
-from flask import Flask, request, jsonify
-from flask_jwt_extended import JWTManager, create_access_token
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager
 from flask_cors import CORS
-from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from dotenv import load_dotenv
+from auth import auth_bp
+from models import db
 
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///site.db')
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+
+db.init_app(app)
 jwt = JWTManager(app)
 
-users_db = {}
+app.register_blueprint(auth_bp)
 
-@app.route('/auth/register', methods=['POST'])
-def register():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    if username in users_db:
-        return jsonify({"msg": "User already exists"}), 400
-    users_db[username] = generate_password_hash(password)
-    return jsonify({"msg": "User registered successfully"}), 201
-
-@app.route('/auth/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    if username not in users_db or not check_password_hash(users_db[username], password):
-        return jsonify({"msg": "Invalid username or password"}), 401
-    access_token = create_access_token(identity=username)
-    return jsonify(access_token=access_token), 200
+with app.app_context():
+    db.create_all()
 
 if __name__ == '__main__':
     app.run(debug=True)
