@@ -31,7 +31,7 @@ def login():
     if user and check_password(user.password, data['password']):
         access_token = create_access_token(identity=user.id, expires_delta=timedelta(days=1))
         return jsonify({"access_token": access_token}), 200
-    return jsonify({"error": "Invalid credentials"}), 401
+    return jsonify({"message": "Invalid credentials"}), 401
 
 # Protected Route
 @auth_bp.route('/protected', methods=['GET'])
