@@ -1,27 +1,23 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager
-from flask_cors import CORS
-import os
-from dotenv import load_dotenv
-from auth import auth_bp
-from models import db
-
-load_dotenv()
+from flask import Flask, jsonify, request
+from bitcoinrpc.authproxy import AuthServiceProxy
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///site.db')
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+rpc_user = "testing"
+rpc_password = "test"
+rpc_host = 38332
 
-db.init_app(app)
-jwt = JWTManager(app)
+rpc_connection = AuthServiceProxy(f"http://{rpc_user}:{rpc_password}@127.0.0.1{rpc_port}")
 
-app.register_blueprint(auth_bp)
+@app.route("generate_address", methods=["GET"])
+def generate_address():
+    address = rpc_connection.getnewaddress()
+    return jsonify({"address": address})
 
-with app.app_context():
-    db.create_all()
+@app.route("/check_payment/<txid>", methods=["GET"])
+def check_payment(txid):
+    tx = rpc_connection.gettransaction(txid)
+    return jsonify(tx)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
